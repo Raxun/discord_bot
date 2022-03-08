@@ -3,6 +3,9 @@ import requests
 import asyncio
 
 
+# config/environments/production.rb
+config.assets.compile = true # setting to true makes your app vulnerable
+
 TOKEN = "OTQ5OTYxODU1NDQ5ODQ5ODc2.YiR-6w.azhDOCmYS-sngzTHtHI7sqrZPnM"
 
 # люблю нюхать лютую бебру
