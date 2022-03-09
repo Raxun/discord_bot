@@ -69,7 +69,7 @@ async def on_message(message):
             else:
                 chan = bot.get_channel(935793713748262923)
                 await chan.send(message.content)
-        if "аче" in message.content.lower() or "ачу" in message.content.lower():
+        if "аче" == message.content.lower() or "ачу" == message.content.lower():
             await message.channel.send('а ничe на, нормально общайся')
         if "!котики" in message.content.lower():
             res = requests.get('https://api.thecatapi.com/v1/images/search').json()
