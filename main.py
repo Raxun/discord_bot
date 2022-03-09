@@ -5,7 +5,7 @@ from discord.ext import commands
 from discord_webhook import DiscordWebhook, DiscordEmbed
 
 
-bot = commands.Bot(command_prefix='%')
+bot = commands.Bot(command_prefix='!')
 TOKEN = "OTQ5OTYxODU1NDQ5ODQ5ODc2.YiR-6w.azhDOCmYS-sngzTHtHI7sqrZPnM"
 webhook = DiscordWebhook(url='https://discord.com/api/webhooks/951126186422050847/wmtZcrOElwCDwcKfICqFhOY644q-'
                              '8uMiaDn55GgZ0Mqelj3HuDfMtU4c2hGp83IjbPSG')
@@ -48,7 +48,7 @@ async def on_ready():
 
     em_roles.set_author(name="Raxun", icon_url="https://avatars.githubusercontent.com/u/94015674?s=400&u=7d739"
                                                "fe0e1593df54e804fb6e097f597a3a838d7&v=4")
-    em_roles.add_field(name="Команды", value='%роль (тег роли)', inline=False)
+    em_roles.add_field(name="Команды", value='!роль (тег роли)', inline=False)
     em_roles.add_field(name="Роли", value=' | '.join(all_roles), inline=True)
 
 
