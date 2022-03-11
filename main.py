@@ -1,8 +1,14 @@
+from __future__ import unicode_literals
 import discord
 import requests
 import asyncio
 from discord.ext import commands
-from discord_webhook import DiscordWebhook, DiscordEmbed
+from discord_webhook import DiscordWebhook
+import spotipy
+from spotipy.oauth2 import SpotifyClientCredentials
+from youtubesearchpython import VideosSearch
+import youtube_dl
+import os
 
 
 bot = commands.Bot(command_prefix='!')
@@ -19,7 +25,15 @@ sp = [777095890920800278, 777095890920800279, 777095891374571520, 91633364772285
 prohibited_roles = [777095890920800277, 950084976106434603, 916336276377067550, 951123097556242462,
                     922929900896260197, 916349586807857253, 931265070380490783, 916347414347149363, 916404928178708530,
                     916346185516720190, 921662122570690580, 916335782237724702]
+
+client_id = "78a7bbd4b14d44f089471f96cff65c7f"  # Сюда вводим полученные данные из панели спотифая
+secret = "a9052a01b1a94306851d93742998921d"  # Сюда вводим полученные данные из панели спотифая
+
+auth_manager = SpotifyClientCredentials(client_id=client_id, client_secret=secret)
+spotify = spotipy.Spotify(auth_manager=auth_manager)
 em_roles = discord.Embed(title="", colour=0x87CEEB)
+url = ''
+sp_music = []
 
 
 @bot.event
@@ -44,8 +58,6 @@ async def on_ready():
         all_roles.append(role.id)
     all_roles.reverse()  # to make it higher first
     all_roles = ['<@&' + str(all_roles[i]) + '>' for i in range(len(all_roles)) if all_roles[i] not in prohibited_roles]
-
-
     em_roles.set_author(name="Raxun", icon_url="https://avatars.githubusercontent.com/u/94015674?s=400&u=7d739"
                                                "fe0e1593df54e804fb6e097f597a3a838d7&v=4")
     em_roles.add_field(name="Команды", value='!роль (тег роли)', inline=False)
@@ -57,10 +69,6 @@ async def on_message(message):
     if message.author == bot.user:
         return
     else:
-        if "!помощь" == message.content.lower():
-            await message.channel.send(embed=em_help)
-        if "!роли" == message.content.lower():
-            await message.channel.send(embed=em_roles)
         if message.channel.id not in sp:
             if message.attachments:
                 photo_url = message.attachments[0].url
@@ -71,25 +79,94 @@ async def on_message(message):
                 await chan.send(message.content)
         if "аче" == message.content.lower() or "ачу" == message.content.lower():
             await message.channel.send('а ничe на, нормально общайся')
-        if "!котики" in message.content.lower():
-            res = requests.get('https://api.thecatapi.com/v1/images/search').json()
-            await message.channel.send(res[0]['url'])
-        if '!собачка' in message.content.lower():
-            res = requests.get('https://dog.ceo/api/breeds/image/random').json()
-            await message.channel.send(res['message'])
-        if '!таймер' in message.content.lower():
-            try:
-                mes = message.content.lower().split()
-                time = (int(mes[mes.index('часов') - 1]) * 3600) + (int(mes[mes.index('минут') - 1]) * 60) + \
-                        (int(mes[mes.index('секунд') - 1]))
-                await message.channel.send(f'таймер поставлен на {" ".join(mes[2:4])} '
-                                            f'{" ".join(mes[4:6])} и {" ".join(mes[6:8])}')
-                await asyncio.sleep(time)
-                await message.channel.send(':alarm_clock:Время пришло ебан!')
-            except ValueError:
-                await message.channel.send('Неверный формат. Чтобы поставить таймер введите - '
-                                            '!таймер n часов n минут n секунд')
     await bot.process_commands(message)
+
+
+@bot.command('помощь')
+async def cat(ctx):
+    await ctx.message.channel.send(embed=em_help)
+
+
+@bot.command('роли')
+async def cat(ctx):
+    await ctx.message.channel.send(embed=em_roles)
+
+
+@bot.command('котики')
+async def cat(ctx):
+    res = requests.get('https://api.thecatapi.com/v1/images/search').json()
+    await ctx.message.channel.send(res[0]['url'])
+
+
+@bot.command('собачка')
+async def cat(ctx):
+    res = requests.get('https://dog.ceo/api/breeds/image/random').json()
+    await ctx.message.channel.send(res[0]['url'])
+
+
+@bot.command('таймер')
+async def cat(ctx):
+    try:
+        mes = ctx.message.content.lower().split()
+        time = (int(mes[mes.index('часов') - 1]) * 3600) + (int(mes[mes.index('минут') - 1]) * 60) + \
+               (int(mes[mes.index('секунд') - 1]))
+        await ctx.message.channel.send(f'таймер поставлен на {" ".join(mes[2:4])} '
+                                   f'{" ".join(mes[4:6])} и {" ".join(mes[6:8])}')
+        await asyncio.sleep(time)
+        await ctx.message.channel.send(':alarm_clock:Время пришло ебан!')
+    except ValueError:
+        await ctx.message.channel.send('Неверный формат. Чтобы поставить таймер введите - '
+                                   '!таймер n часов n минут n секунд')
+
+
+@bot.command('плейлист')
+async def playlist(ctx):
+    if len(ctx.message.content) > 10:
+        url = ctx.message.content[9:-1]
+        result = spotify.track(url)
+        performers = ""
+        music = result['name']
+        for names in result["artists"]:
+            performers = performers + names["name"] + ", "
+        performers = performers.rstrip(", ")
+        name = f"{performers} - {music}"
+        print(name)
+        ydl_opts = {'format': 'bestaudio/best',
+                    'postprocessors': [{'key': 'FFmpegExtractAudio', 'preferredcodec': 'mp3',
+                                        'preferredquality': '192'}],
+                    'outtmpl': f'./{name}.webm'}
+
+        videosSearch = VideosSearch(f'{performers} - {music}', limit=1)
+        videoresult = videosSearch.result()["result"][0]["link"]
+        name = name + '.mp3'
+        sp_files = os.listdir()
+        if name not in sp_files:
+            with youtube_dl.YoutubeDL(ydl_opts) as ydl:
+                ydl.download([videoresult])
+        sp_music.append(name)
+    em_playlist = discord.Embed(title="Плейлист", colour=0x87CEEB)
+    for i, name in enumerate(sp_music):
+        em_playlist.add_field(name=str(i + 1), value=name[:-4], inline=False)
+    await ctx.message.channel.send(embed=em_playlist)
+
+
+@bot.command('музыка')
+async def music(ctx):
+    for musics in sp_music:
+        channel = ctx.message.author.voice.channel
+        vc = await channel.connect()
+        vc.play(discord.FFmpegPCMAudio(musics), after=lambda e: music(ctx))
+        del sp_music[sp_music.index(musics)]
+        asyncio.run_coroutine_threadsafe(ctx.send("No more songs in queue."))
+
+
+@bot.command('стоп')
+async def stop_music(ctx):
+    global sp_music
+    global em_playlist
+    channel = ctx.message.author.voice.channel
+    await channel.disconnect()
+    sp_music = []
 
 
 @bot.command('роль')
