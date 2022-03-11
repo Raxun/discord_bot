@@ -32,6 +32,7 @@ secret = "a9052a01b1a94306851d93742998921d"  # Сюда вводим получ�
 auth_manager = SpotifyClientCredentials(client_id=client_id, client_secret=secret)
 spotify = spotipy.Spotify(auth_manager=auth_manager)
 em_roles = discord.Embed(title="", colour=0x87CEEB)
+em_help_music = discord.Embed(title="", colour=0x87CEEB)
 url = ''
 sp_music = []
 
@@ -50,9 +51,14 @@ async def on_ready():
         # print(client.get_channel(916775540822790164)) test-bot
     em_help.set_author(name="Raxun", icon_url="https://avatars.githubusercontent.com/u/94015674?s=400&u=7d739"
                                               "fe0e1593df54e804fb6e097f597a3a838d7&v=4")
-    em_help.add_field(name="Команды", value="!котики !собачка !роли !таймер", inline=False)
+    em_help.add_field(name="Команды", value="!котики !собачка !роли !таймер !музыка", inline=False)
     em_help.add_field(name="Особенности", value="все личные сообщения бота анонимно отправляются "
                                                 "в :book:базар:book:", inline=False)
+    em_help_music.set_author(name="Raxun", icon_url="https://avatars.githubusercontent.com/u/94015674?s=400&u=7d739"
+                                              "fe0e1593df54e804fb6e097f597a3a838d7&v=4")
+    em_help_music.add_field(name="Команды", value="!плейлист (ссылка на трек Spotify) !стоп !музыка", inline=False)
+    em_help_music.add_field(name="Особенности", value="На данном этапе бот не в состоянии сам переключаться на "
+                                                      "следующий трек", inline=False)
 
     for role in bot.get_guild(777095890920800277).roles:
         all_roles.append(role.id)
@@ -85,6 +91,11 @@ async def on_message(message):
 @bot.command('помощь')
 async def cat(ctx):
     await ctx.message.channel.send(embed=em_help)
+
+
+@bot.command('музыка')
+async def cat(ctx):
+    await ctx.message.channel.send(embed=em_help_music)
 
 
 @bot.command('роли')
@@ -145,12 +156,14 @@ async def playlist(ctx):
                 ydl.download([videoresult])
         sp_music.append(name)
     em_playlist = discord.Embed(title="Плейлист", colour=0x87CEEB)
+    em_playlist.set_author(name="Raxun", icon_url="https://avatars.githubusercontent.com/u/94015674?s=400&u=7d739"
+                                                  "fe0e1593df54e804fb6e097f597a3a838d7&v=4")
     for i, name in enumerate(sp_music):
         em_playlist.add_field(name=str(i + 1), value=name[:-4], inline=False)
     await ctx.message.channel.send(embed=em_playlist)
 
 
-@bot.command('музыка')
+@bot.command('старт')
 async def music(ctx):
     for musics in sp_music:
         channel = ctx.message.author.voice.channel
