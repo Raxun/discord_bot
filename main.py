@@ -9,9 +9,11 @@ from spotipy.oauth2 import SpotifyClientCredentials
 from youtubesearchpython import VideosSearch
 import youtube_dl
 import os
+from mutagen.mp3 import MP3
 
 
 bot = commands.Bot(command_prefix='!')
+FFMPEG_OPTIONS = {'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5', 'options': '-vn'}
 TOKEN = "OTQ5OTYxODU1NDQ5ODQ5ODc2.YiR-6w.azhDOCmYS-sngzTHtHI7sqrZPnM"
 webhook = DiscordWebhook(url='https://discord.com/api/webhooks/951126186422050847/wmtZcrOElwCDwcKfICqFhOY644q-'
                              '8uMiaDn55GgZ0Mqelj3HuDfMtU4c2hGp83IjbPSG')
@@ -35,6 +37,7 @@ em_roles = discord.Embed(title="", colour=0x87CEEB)
 em_help_music = discord.Embed(title="", colour=0x87CEEB)
 url = ''
 sp_music = []
+all_roles = []
 
 
 @bot.event
@@ -51,23 +54,10 @@ async def on_ready():
         # print(client.get_channel(916775540822790164)) test-bot
     em_help.set_author(name="Raxun", icon_url="https://avatars.githubusercontent.com/u/94015674?s=400&u=7d739"
                                               "fe0e1593df54e804fb6e097f597a3a838d7&v=4")
-    em_help.add_field(name="Команды", value="!котики !собачка !роли !таймер !музыка", inline=False)
-    em_help.add_field(name="Особенности", value="все личные сообщения бота анонимно отправляются "
-                                                "в :book:базар:book:", inline=False)
+    em_help.add_field(name="Команды", value="!музыка", inline=False)
     em_help_music.set_author(name="Raxun", icon_url="https://avatars.githubusercontent.com/u/94015674?s=400&u=7d739"
                                               "fe0e1593df54e804fb6e097f597a3a838d7&v=4")
     em_help_music.add_field(name="Команды", value="!плейлист (ссылка на трек Spotify) !стоп !музыка", inline=False)
-    em_help_music.add_field(name="Особенности", value="На данном этапе бот не в состоянии сам переключаться на "
-                                                      "следующий трек", inline=False)
-
-    for role in bot.get_guild(777095890920800277).roles:
-        all_roles.append(role.id)
-    all_roles.reverse()  # to make it higher first
-    all_roles = ['<@&' + str(all_roles[i]) + '>' for i in range(len(all_roles)) if all_roles[i] not in prohibited_roles]
-    em_roles.set_author(name="Raxun", icon_url="https://avatars.githubusercontent.com/u/94015674?s=400&u=7d739"
-                                               "fe0e1593df54e804fb6e097f597a3a838d7&v=4")
-    em_roles.add_field(name="Команды", value='!роль (тег роли)', inline=False)
-    em_roles.add_field(name="Роли", value=' | '.join(all_roles), inline=True)
 
 
 @bot.event
@@ -76,62 +66,30 @@ async def on_message(message):
         return
     else:
         if message.channel.id not in sp:
-            if message.attachments:
+            print(message.content, message.author)
+            '''if message.attachments:
                 photo_url = message.attachments[0].url
                 chan = bot.get_channel(935793713748262923)
                 await chan.send(photo_url)
             else:
                 chan = bot.get_channel(935793713748262923)
-                await chan.send(message.content)
-        if "аче" == message.content.lower() or "ачу" == message.content.lower():
-            await message.channel.send('а ничe на, нормально общайся')
+                await chan.send(message.content)'''
     await bot.process_commands(message)
 
 
 @bot.command('помощь')
-async def cat(ctx):
+async def help(ctx):
     await ctx.message.channel.send(embed=em_help)
 
 
 @bot.command('музыка')
-async def cat(ctx):
+async def music(ctx):
     await ctx.message.channel.send(embed=em_help_music)
-
-
-@bot.command('роли')
-async def cat(ctx):
-    await ctx.message.channel.send(embed=em_roles)
-
-
-@bot.command('котики')
-async def cat(ctx):
-    res = requests.get('https://api.thecatapi.com/v1/images/search').json()
-    await ctx.message.channel.send(res[0]['url'])
-
-
-@bot.command('собачка')
-async def cat(ctx):
-    res = requests.get('https://dog.ceo/api/breeds/image/random').json()
-    await ctx.message.channel.send(res[0]['url'])
-
-
-@bot.command('таймер')
-async def cat(ctx):
-    try:
-        mes = ctx.message.content.lower().split()
-        time = (int(mes[mes.index('часов') - 1]) * 3600) + (int(mes[mes.index('минут') - 1]) * 60) + \
-               (int(mes[mes.index('секунд') - 1]))
-        await ctx.message.channel.send(f'таймер поставлен на {" ".join(mes[2:4])} '
-                                   f'{" ".join(mes[4:6])} и {" ".join(mes[6:8])}')
-        await asyncio.sleep(time)
-        await ctx.message.channel.send(':alarm_clock:Время пришло ебан!')
-    except ValueError:
-        await ctx.message.channel.send('Неверный формат. Чтобы поставить таймер введите - '
-                                   '!таймер n часов n минут n секунд')
 
 
 @bot.command('плейлист')
 async def playlist(ctx):
+    global vc
     if len(ctx.message.content) > 10:
         url = ctx.message.content[9:-1]
         result = spotify.track(url)
@@ -141,7 +99,6 @@ async def playlist(ctx):
             performers = performers + names["name"] + ", "
         performers = performers.rstrip(", ")
         name = f"{performers} - {music}"
-        print(name)
         ydl_opts = {'format': 'bestaudio/best',
                     'postprocessors': [{'key': 'FFmpegExtractAudio', 'preferredcodec': 'mp3',
                                         'preferredquality': '192'}],
@@ -149,41 +106,49 @@ async def playlist(ctx):
 
         videosSearch = VideosSearch(f'{performers} - {music}', limit=1)
         videoresult = videosSearch.result()["result"][0]["link"]
-        name = name + '.mp3'
         sp_files = os.listdir()
-        if name not in sp_files:
-            with youtube_dl.YoutubeDL(ydl_opts) as ydl:
-                ydl.download([videoresult])
-        sp_music.append(name)
+        with youtube_dl.YoutubeDL(ydl_opts) as ydl:
+            info = ydl.extract_info(videoresult, download=False)
+        url_misic = info['formats'][0]['url']
+        add_music = {name: url_misic}
+        sp_music.append(add_music)
     em_playlist = discord.Embed(title="Плейлист", colour=0x87CEEB)
     em_playlist.set_author(name="Raxun", icon_url="https://avatars.githubusercontent.com/u/94015674?s=400&u=7d739"
                                                   "fe0e1593df54e804fb6e097f597a3a838d7&v=4")
-    for i, name in enumerate(sp_music):
-        em_playlist.add_field(name=str(i + 1), value=name[:-4], inline=False)
+    for i, elem in enumerate(sp_music):
+        name = elem.key()
+        em_playlist.add_field(name=str(i + 1), value=name, inline=False)
     await ctx.message.channel.send(embed=em_playlist)
 
 
 @bot.command('старт')
-async def music(ctx):
-    for musics in sp_music:
-        channel = ctx.message.author.voice.channel
-        vc = await channel.connect()
-        vc.play(discord.FFmpegPCMAudio(musics), after=lambda e: music(ctx))
-        del sp_music[sp_music.index(musics)]
-        asyncio.run_coroutine_threadsafe(ctx.send("No more songs in queue."))
+async def start_music(ctx):
+    for element in sp_music:
+        url_music = element.value()
+        voice_channel = ctx.message.author.voice.channel
+        vc = await voice_channel.connect()
+        await asyncio.sleep(1)
+        vc.play(discord.FFmpegPCMAudio(executable="ffmpeg.exe", source=url_misic, **FFMPEG_OPTIONS))
 
 
 @bot.command('стоп')
 async def stop_music(ctx):
-    global sp_music
-    global em_playlist
-    channel = ctx.message.author.voice.channel
-    await channel.disconnect()
+    global sp_music, vs
     sp_music = []
+    await ctx.voice_client.disconnect()
 
 
 @bot.command('роль')
 async def role(ctx, role):
+    all_roles = []
+    for role in bot.get_guild(ctx.channel).roles:
+        all_roles.append(role.id)
+    all_roles.reverse()  # to make it higher first
+    all_roles = ['<@&' + str(all_roles[i]) + '>' for i in range(len(all_roles)) if all_roles[i] not in prohibited_roles]
+    em_roles.set_author(name="Raxun", icon_url="https://avatars.githubusercontent.com/u/94015674?s=400&u=7d739"
+                                               "fe0e1593df54e804fb6e097f597a3a838d7&v=4")
+    em_roles.add_field(name="Команды", value='!роль (тег роли)', inline=False)
+    em_roles.add_field(name="Роли", value=' | '.join(all_roles), inline=True)
     print(role)
     flag = False
     role = role[3:-1]
